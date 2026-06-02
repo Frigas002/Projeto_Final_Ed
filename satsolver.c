@@ -100,6 +100,7 @@ void printar (CNF *formula){
         }
 
         printf("-----------------\n");
+        printf("Resultado: ");
     }
 }
 
@@ -157,14 +158,138 @@ int ve_clausula (CNF *formula, int indice, int *atribuicoes, int *literal_livre_
     return -2; //se n retornou 1, nem 0, nem -1, quer dizer que tem mto literal sem atribuição
 }
 
-int main(){
-    CNF *formula_mita = dimacs("../teste.cnf"); //esse ../ faz ele parar de procurar na pasta output
+int propagacao (CNF *formula, int *atribuicoes){
+    int alteracao = 1; //define 
 
-    if(formula_mita != NULL){
-        printar(formula_mita);
-        dar_free(formula_mita);
+    while(alteracao){
+        alteracao = 0; //supoe q é o ultimo round. Se n for a flag ativa de novo no if
+
+        for (int i = 0; i< formula->num_clauses; i++){
+            int literal;
+            int resultado = ve_clausula(formula, i, atribuicoes, &literal);
+
+            if(resultado == 0){ //falhou
+                return 0;
+            }
+
+            if(resultado == -1){
+                int indice_do_literal = abs(literal);
+                
+                if(literal > 0){
+                    atribuicoes[indice_do_literal] = 1; //se for positivo, recebe verdadeiro
+                }
+
+                else{
+                    atribuicoes[indice_do_literal] = -1; //se for falso, recebe negativo
+                }
+
+                alteracao = 1; // indica a alteracao (suposicao) e da break p refazer o while
+                break;
+            }
+        }
+        
     }
 
+    return 1;
+}
 
+int dpll(CNF *formula, int *atribuicoes){
+    int resultado_prop = propagacao(formula, atribuicoes);
+
+    if(resultado_prop == 0){ //se o resultado deu 0, falhou a suposicao e o galho morre
+        return 0;
+    }
+
+    else{
+        int satisfeito = 1;
+
+        for(int i = 0; i< formula->num_clauses; i++){
+            int literal; //so p passar a func
+            int resultado = ve_clausula(formula, i, atribuicoes, &literal); //ve qual clausula eh satisfeita
+
+            if(resultado != 1){ //se deu break, a gnt sabe a linha q ta dando coisa
+                satisfeito = 0;
+                break;
+            }
+
+        }
+            if(satisfeito == 1){ //se dps do loop, ele ta satisfeito, o dpll retorna 1
+                return 1;
+            }
+        
+        int livre = -1;
+
+        for(int i = 1; i<= formula->num_literals; i++){ //dps do break ele vem p ca, p ver qual e o literal sem atribuicao
+            if(atribuicoes[i] == 0){
+                livre = i;
+                break;
+            }
+        } //se livre n for mudado significa q n tem mais chute p fzr :/
+
+        if(livre == -1){ //pro caso do livre n ter mudado
+            return 0;
+        }
+
+        atribuicoes[livre] = 1; //chuta q é positivo pela esquerda
+        if(dpll(formula, atribuicoes) == 1){
+            return 1;
+        }
+
+        else{
+            atribuicoes[livre] = -1; //chuta que é positivo pela direita
+            if(dpll(formula, atribuicoes) == 1){
+                return 1;
+            }
+
+            else{
+                atribuicoes[livre] = 0;
+                return 0;
+            }
+        }
+    }
     return 0;
+}
+
+int main(int argc, char *argv[]){
+    
+    if(argc < 2){
+        printf("Usando: %s <arquivo.cnf>\n", argv[0]);
+        return 1;
+    }
+
+    CNF *formula = dimacs(argv[1]);
+
+    if(formula == NULL){
+        printf("Vai nao man.\n");
+        return 1;
+    }
+
+    else{
+        int *atribuicoes =  (int*) calloc(formula->num_literals +1, sizeof(int));
+
+        if(atribuicoes == NULL){
+            printf("Erro fi\n");
+            dar_free(formula);
+            return 1;
+        }
+
+        else{
+            int res = dpll(formula, atribuicoes);
+
+            if(res == 1){
+                printar(formula);
+                printf("SAT!\n");
+            }
+
+            else{
+                printar(formula);
+                printf("UNSAT :/\n");
+            }
+            free(atribuicoes);
+            dar_free(formula);
+        }
+
+    }
+return 0;
+
 }
