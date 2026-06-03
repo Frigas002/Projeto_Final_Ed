@@ -1,4 +1,13 @@
+Site de consulta C/C++:
+-https://cplusplus.com/
+
 Topological sort:
 -https://youtu.be/7J3GadLzydI?si=_eD0rNpGHOZv_iIW
 -https://youtu.be/eL-KzMXSXXI?si=A6mWYSv4BT7jQdOn
 -https://youtu.be/cIBFEhD77b4?si=IcuFCPS_xuZhQ4Zd
+
+
+SAT solver:
+-https://www.youtube.com/watch?v=ki7rzvonbOs
+-https://www.inf.ufpr.br/dpasqualin/d3-dpll/
+-https://www.youtube.com/watch?v=qnEhZFH9gXw
