@@ -4,7 +4,31 @@
 #include "satsolver.h"
 //cnf e a forma normal conjuntiva ex: ((AvB) ^ (-B V C)) soq esse aqui usa numeros
 
-CNF *dimacs (const char *arquivo){
+no* criar_no (int literal, int valor){ //agr usa arvore propriamente
+    no *novo_no = (no*) malloc(sizeof(no));
+
+    novo_no->literal = literal;
+    novo_no->valor = valor;
+    novo_no->right = NULL;
+    novo_no->left = NULL;
+
+    return novo_no;
+}
+
+void free_tree(no *no){
+    if(no ==  NULL){
+        return;
+    }
+
+    else{
+        free_tree (no->left);
+        free_tree (no->right);
+        free(no);
+    }
+
+}
+
+CNF *dimacs (const char *arquivo){ //funcao pra fazer funfar o arquivo
     FILE *arq = fopen(arquivo, "r");
 
     if(arq == NULL){
@@ -193,7 +217,9 @@ int propagacao (CNF *formula, int *atribuicoes){
     return 1;
 }
 
-int dpll(CNF *formula, int *atribuicoes){
+
+
+int dpll(CNF *formula, int *atribuicoes, no **no){
     int resultado_prop = propagacao(formula, atribuicoes);
 
     if(resultado_prop == 0){ //se o resultado deu 0, falhou a suposicao e o galho morre
@@ -230,24 +256,46 @@ int dpll(CNF *formula, int *atribuicoes){
             return 0;
         }
 
-        atribuicoes[livre] = 1; //chuta q é positivo pela esquerda
-        if(dpll(formula, atribuicoes) == 1){
+        int *salva_atribuicao = (int*) malloc((formula->num_literals + 1) * sizeof(int)); //array temporario p salvar o estado da atribuicao
+        memcpy(salva_atribuicao, atribuicoes, (formula->num_literals + 1) * sizeof(int));
+
+        //comeca pela esquerda chutando q eh positivo
+        *no = criar_no(livre, 1);
+        atribuicoes[livre] = 1; 
+        
+
+        if(dpll(formula, atribuicoes, &((*no) ->left )) == 1){ //se deu bom ele da free no array temporario e retorna q funfou
+            free(salva_atribuicao);
             return 1;
         }
 
-        else{
-            atribuicoes[livre] = -1; //chuta que é positivo pela direita
-            if(dpll(formula, atribuicoes) == 1){
-                return 1;
-            }
+        free_tree ((*no) ->left); //se falhou ele da free no no e faz o pai apontar p null
+        (*no) ->left = NULL;
 
-            else{
-                atribuicoes[livre] = 0;
-                return 0;
-            }
+        memcpy(atribuicoes, salva_atribuicao, (formula->num_literals + 1) * sizeof(int)); //restaura o array temporario
+
+        //agr chuta q eh negativo pela direita
+        (*no)->valor = -1;
+        atribuicoes[livre] = -1;
+
+        if(dpll(formula, atribuicoes, &((*no) ->right )) == 1){ //deu crt ele faz a msm coisa
+            free(salva_atribuicao);
+            return 1;
         }
+
+        free_tree ((*no) ->right); //falhou ele da free no no da direita e faz o pai apontar p null
+        (*no) ->right = NULL;
+
+
+        //se ambas falharam, da free no no que gerou a esquerda e a direita
+        free(*no);
+        *no = NULL;
+
+        memcpy(atribuicoes, salva_atribuicao, (formula->num_literals + 1) * sizeof(int));
+        free(salva_atribuicao);
+
+        return 0;
     }
-    return 0;
 }
 
 int main(int argc, char *argv[]){
@@ -274,7 +322,8 @@ int main(int argc, char *argv[]){
         }
 
         else{
-            int res = dpll(formula, atribuicoes);
+            no *raiz = NULL;
+            int res = dpll(formula, atribuicoes, &raiz);
 
             if(res == 1){
                 printar(formula);
@@ -285,6 +334,8 @@ int main(int argc, char *argv[]){
                 printar(formula);
                 printf("UNSAT :/\n");
             }
+            
+            free_tree(raiz);
             free(atribuicoes);
             dar_free(formula);
         }
