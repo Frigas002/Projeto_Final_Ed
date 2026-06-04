@@ -4,7 +4,7 @@
 #include <string.h>
 
 #define TAM 256
-
+//o código está com comentários que pedi pro gemini fazer, antes do nosso dia eu tiro isso e deixo anotações simples
 /**
  * @brief Estrutura do Nó da Árvore de Huffman.
  * Utiliza void* para o dado, garantindo generalidade.
