@@ -1,110 +1,399 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<locale.h>
-#define TAM 256
-typedef struct arve{
-    unsigned char caracter;
-    int frequencia;
-    struct arve *esq, *dir,*prox;
-}arve;
-typedef struct Lista{
-    arve *inicio;
-    int tam;
-}Lista;
+#include <stdio.h>
+#include <stdlib.h>
+#include <locale.h>
+#include <string.h>
 
-void criar_lista(Lista*lista){
-    lista->inicio=NULL;
-    lista->tam=0;
+#define TAM 256
+
+/**
+ * @brief Estrutura do Nó da Árvore de Huffman.
+ * Utiliza void* para o dado, garantindo generalidade.
+ */
+typedef struct arve {
+    void* caracter; 
+    int frequencia;
+    struct arve *esq, *dir, *prox;
+} arve;
+
+/**
+ * @brief Estrutura da Lista Encadeada (Fila de Prioridade).
+ * Utiliza void* para apontar para o início genérico.
+ */
+typedef struct Lista {
+    void *inicio;
+    int tam;
+} Lista;
+
+void criar_lista(Lista *lista) {
+    lista->inicio = NULL;
+    lista->tam = 0;
 }
 
-void inserirorde(Lista *lista, arve *no){
+void inserirorde(Lista *lista, arve *no) {
     arve *aux;
-    //lista vazia?
-    if(lista->inicio==NULL){
-        lista->inicio=no;
+    arve *inicio = (arve *) lista->inicio; 
+    
+    if(inicio == NULL) {
+        lista->inicio = no;
     }
-    //freq menor que a do inicio?
-    else if(no->frequencia<lista->inicio->frequencia){
-        no->prox=lista->inicio;
-        lista->inicio=no;
+    else if(no->frequencia < inicio->frequencia) {
+        no->prox = inicio;
+        lista->inicio = no;
     }
-    else{
-        aux=lista->inicio;
-        while(aux->prox&&aux->prox->frequencia<=no->frequencia)
-            aux=aux->prox;
-        no->prox=aux->prox;
-        aux->prox=no;
+    else {
+        aux = inicio;
+        while(aux->prox && aux->prox->frequencia <= no->frequencia)
+            aux = aux->prox;
+            
+        no->prox = aux->prox;
+        aux->prox = no;
     }
     lista->tam++;
 }
-void preencher(unsigned int tab[], Lista *lista){
+
+void preencher(unsigned int tab[], Lista *lista) {
     int i;
     arve *novo;
-    for(i=0;i<TAM;i++){
-        if(tab[i]>0){
+    for(i = 0; i < TAM; i++) {
+        if(tab[i] > 0) {
             novo = malloc(sizeof(arve));
-            if(novo){
-                novo->caracter=i;
+            if(novo) {
+                unsigned char *c = malloc(sizeof(unsigned char));
+                *c = i;
+                novo->caracter = c; 
                 novo->frequencia = tab[i];
-                novo->dir=NULL;
-                novo->esq=NULL;
-                novo->prox=NULL;
-                inserirorde(lista,novo);
-            }
-            else{
-                printf("\tErro ao alocar em Alocar memeoria\n");
-                break;
+                novo->dir = NULL;
+                novo->esq = NULL;
+                novo->prox = NULL;
+                inserirorde(lista, novo);
             }
         }
     }
 }
 
-void printlist(Lista *lista){
-    arve *aux=lista->inicio;
-    printf("\tLista de tamanho: %d\n", lista->tam);
-    while (aux){
-        printf("\tCaracter :%c Freq: %d\n",aux->caracter,aux->frequencia);
-        aux = aux->prox;
+void freq_arquivo(const char *nome_arquivo, unsigned int tab[]) {
+    FILE *arq = fopen(nome_arquivo, "rb");
+    if (arq) {
+        unsigned char c;
+        while (fread(&c, sizeof(unsigned char), 1, arq)) {
+            tab[c]++;
+        }
+        fclose(arq);
+    } else {
+        printf("\tErro: Crie um arquivo '%s' na pasta para testar.\n", nome_arquivo);
     }
-    
 }
 
-void init(unsigned int tab[]){
+void init(unsigned int tab[]) {
     int i;
-    for (i=0;i<TAM; i++){
-        tab[i]=0;
+    for (i = 0; i < TAM; i++) {
+        tab[i] = 0;
     }
 }
-void freq(unsigned char text[], unsigned int tab[]){
-    int i =0;
-    while(text[i]!='\0'){
-        tab[text[i]]++;
-        i++;
+
+arve* remover(Lista *lista) {
+    arve *aux = NULL;
+    if(lista->inicio) {
+        aux = (arve *)lista->inicio;
+        lista->inicio = aux->prox;
+        aux->prox = NULL;
+        lista->tam--;
+    }
+    return aux;
+}
+
+arve* montar_arve(Lista *lista) {
+    arve *primeiro, *segundo, *novo;
+    while(lista->tam > 1) {
+        primeiro = remover(lista);
+        segundo = remover(lista);
+        novo = malloc(sizeof(arve));
+        
+        if(novo) {
+            unsigned char *c = malloc(sizeof(unsigned char));
+            *c = '*'; // Nós internos são identificados por '*'
+            
+            novo->caracter = c;
+            novo->frequencia = primeiro->frequencia + segundo->frequencia;
+            novo->esq = primeiro;
+            novo->dir = segundo;
+            novo->prox = NULL;
+            
+            inserirorde(lista, novo);
+        }
+    }
+    return (arve *)lista->inicio; 
+}
+
+int altura(arve *raiz) {
+    if(raiz == NULL) return -1;
+    else {
+        int esq = altura(raiz->esq) + 1;
+        int dir = altura(raiz->dir) + 1; 
+        return (esq > dir) ? esq : dir;
     }
 }
-void print_freq(unsigned int tab[]){
-    int i=0;
-    printf("\tTabela de freq\n");
-    for(i=0;i<TAM; i++){
-        if(tab[i]>0){
-        printf("\t%d = %u = %c\n",i,tab[i],i);
+
+char** alocacaodi(int colunas) {
+    char** dicionario = malloc(sizeof(char*) * TAM);
+    for(int i = 0; i < TAM; i++) {
+        dicionario[i] = calloc(colunas, sizeof(char)); 
+    }
+    return dicionario;
+}
+
+void g_dicionario(char **dicionario, arve *raiz, char *caminho, int colunas) {
+    char esquerda[colunas], direita[colunas];
+    
+    if(raiz->esq == NULL && raiz->dir == NULL) {
+        unsigned char c = *(unsigned char*)raiz->caracter;
+        strcpy(dicionario[c], caminho);
+    }
+    else {
+        strcpy(esquerda, caminho);
+        strcpy(direita, caminho);
+        strcat(esquerda, "0");
+        strcat(direita, "1");
+        g_dicionario(dicionario, raiz->esq, esquerda, colunas);
+        g_dicionario(dicionario, raiz->dir, direita, colunas);
     }
 }
+
+/**
+ * @brief Calcula o tamanho da árvore em bytes para o cabeçalho.
+ * Considera o escape '\' caso a folha seja '*' ou '\'.
+ */
+void tamanho_arvore_arquivo(arve *raiz, int *tamanho) {
+    if (raiz == NULL) return;
+    if (raiz->esq == NULL && raiz->dir == NULL) {
+        unsigned char c = *(unsigned char*)raiz->caracter;
+        if (c == '*' || c == '\\') {
+            (*tamanho) += 2; // Escape + Char
+        } else {
+            (*tamanho) += 1; // Apenas Char
+        }
+    } else {
+        (*tamanho) += 1; // Nó interno '*'
+        tamanho_arvore_arquivo(raiz->esq, tamanho);
+        tamanho_arvore_arquivo(raiz->dir, tamanho);
+    }
 }
-int main(){
-    unsigned char texto[]="Did you ever hear the tragedy of Darth Plagueis The Wise?";
+
+/**
+ * @brief Salva a árvore no arquivo em Pré-Ordem.
+ */
+void salvar_arvore_arquivo(arve *raiz, FILE *out) {
+    if (raiz == NULL) return;
+    if (raiz->esq == NULL && raiz->dir == NULL) {
+        unsigned char c = *(unsigned char*)raiz->caracter;
+        if (c == '*' || c == '\\') {
+            unsigned char escape = '\\';
+            fwrite(&escape, sizeof(unsigned char), 1, out); // Grava o Escape
+        }
+        fwrite(&c, sizeof(unsigned char), 1, out); // Grava a folha
+    } else {
+        unsigned char ast = '*';
+        fwrite(&ast, sizeof(unsigned char), 1, out); // Grava nó interno
+        salvar_arvore_arquivo(raiz->esq, out);
+        salvar_arvore_arquivo(raiz->dir, out);
+    }
+}
+
+/**
+ * @brief Calcula o lixo em bits no último byte do arquivo.
+ */
+int calcular_lixo(char **dicionario, unsigned int tab[]) {
+    long long total_bits = 0;
+    for (int i = 0; i < TAM; i++) {
+        if (tab[i] > 0) {
+            total_bits += tab[i] * strlen(dicionario[i]);
+        }
+    }
+    return (8 - (total_bits % 8)) % 8;
+}
+
+/**
+ * @brief Compacta seguindo o formato: 2 Bytes Header -> Árvore (Pré-ordem) -> Dados
+ */
+void compactar(char** dicionario, unsigned int tab[], arve *arvore, const char *arq_entrada, const char *arq_saida) {
+    FILE *in = fopen(arq_entrada, "rb");
+    FILE *out = fopen(arq_saida, "wb");
+    
+    if(in && out) {
+        int tam_arvore = 0;
+        tamanho_arvore_arquivo(arvore, &tam_arvore);
+        int tam_lixo = calcular_lixo(dicionario, tab);
+        
+        // --- MONTANDO OS 2 BYTES DO CABEÇALHO ---
+        // Byte 1: 3 bits do Lixo + 5 primeiros bits da Árvore
+        unsigned char byte1 = (tam_lixo << 5) | (tam_arvore >> 8);
+        // Byte 2: 8 últimos bits da Árvore
+        unsigned char byte2 = (tam_arvore & 0xFF);
+        
+        fwrite(&byte1, sizeof(unsigned char), 1, out);
+        fwrite(&byte2, sizeof(unsigned char), 1, out);
+        
+        // --- SALVANDO A ÁRVORE ---
+        salvar_arvore_arquivo(arvore, out);
+        
+        // --- SALVANDO OS DADOS ---
+        int j = 7;
+        unsigned char byte = 0;
+        unsigned char c;
+        
+        while (fread(&c, sizeof(unsigned char), 1, in)) {
+            char *codigo = dicionario[c];
+            int i = 0;
+            while(codigo[i] != '\0') {
+                if(codigo[i] == '1') {
+                    byte = byte | (1 << j);
+                }
+                j--;
+                if(j < 0) {
+                    fwrite(&byte, sizeof(unsigned char), 1, out);
+                    byte = 0;
+                    j = 7;
+                }
+                i++;
+            }
+        }
+        if(j != 7) {
+            fwrite(&byte, sizeof(unsigned char), 1, out);
+        }
+        
+        fclose(in);
+        fclose(out);
+        printf("\tArquivo compactado com Cabeçalho gerado com sucesso!\n");
+    }
+}
+
+/**
+ * @brief Reconstrói a árvore lendo a string em pré-ordem do arquivo compactado.
+ */
+arve* reconstruir_arvore(FILE *arq, int *tree_size) {
+    if (*tree_size <= 0) return NULL;
+    
+    unsigned char c;
+    fread(&c, sizeof(unsigned char), 1, arq);
+    (*tree_size)--;
+    
+    arve *novo = malloc(sizeof(arve));
+    unsigned char *dado = malloc(sizeof(unsigned char));
+    
+    if (c == '*') {
+        *dado = '*';
+        novo->caracter = dado;
+        novo->esq = reconstruir_arvore(arq, tree_size);
+        novo->dir = reconstruir_arvore(arq, tree_size);
+    } else {
+        if (c == '\\') { // Se for escape, lê o próximo como caractere real
+            fread(&c, sizeof(unsigned char), 1, arq);
+            (*tree_size)--;
+        }
+        *dado = c;
+        novo->caracter = dado;
+        novo->esq = NULL;
+        novo->dir = NULL;
+    }
+    return novo;
+}
+
+/**
+ * @brief Extrai lendo o cabeçalho, remontando a árvore e traduzindo os bits.
+ */
+void descompactar(const char *arq_entrada, const char *arq_saida) {
+    FILE *in = fopen(arq_entrada, "rb");
+    FILE *out = fopen(arq_saida, "wb");
+    
+    if(in && out) {
+        unsigned char cabecalho[2];
+        fread(cabecalho, sizeof(unsigned char), 2, in);
+        
+        // --- EXTRAINDO INFORMAÇÕES DO CABEÇALHO ---
+        int trash_size = cabecalho[0] >> 5;
+        int tree_size = ((cabecalho[0] & 0x1F) << 8) | cabecalho[1];
+        
+        // --- RECONSTRUINDO A ÁRVORE DO ARQUIVO ---
+        arve *raiz = reconstruir_arvore(in, &tree_size);
+        arve *aux = raiz;
+        
+        // --- CALCULANDO QUANTO FALTA LER ---
+        long pos_atual = ftell(in);
+        fseek(in, 0, SEEK_END);
+        long tamanho_arquivo = ftell(in);
+        fseek(in, pos_atual, SEEK_SET); // Volta para onde estava
+        long bytes_restantes = tamanho_arquivo - pos_atual;
+        
+        // --- DESCOMPACTANDO DADOS ---
+        for (long b = 0; b < bytes_restantes; b++) {
+            unsigned char byte;
+            fread(&byte, sizeof(unsigned char), 1, in);
+            
+            // Se for o último byte do arquivo, parar no lixo
+            int limite = (b == bytes_restantes - 1) ? trash_size : 0;
+            
+            for(int i = 7; i >= limite; i--) {
+                if(byte & (1 << i))
+                    aux = aux->dir;
+                else
+                    aux = aux->esq;
+                    
+                if(aux->dir == NULL && aux->esq == NULL) {
+                    unsigned char c = *(unsigned char*)aux->caracter;
+                    fwrite(&c, sizeof(unsigned char), 1, out);
+                    aux = raiz;
+                }
+            }
+        }
+        fclose(in);
+        fclose(out);
+        printf("\tArquivo descompactado com sucesso a partir do Cabeçalho!\n");
+    }
+}
+
+int main() {
+    setlocale(LC_ALL, "Portuguese");
+    
     unsigned int tabela_freq[TAM];
     Lista lista;
-    setlocale(LC_ALL,"Portuguese");
+    arve *arvore;
+    int colunas, opcao;
+    char **dicionario;
+    
+    const char *nome_original = "teste.bmp";
+    const char *nome_compactado = "teste.huff";
+    const char *nome_descompactado = "resultado.bmp";
 
-//p1
-    init(tabela_freq);
-    freq(texto,tabela_freq);
-    print_freq(tabela_freq);
-//p2
+    
     printf("\t-------------------------------------\n");
+    printf("\tMenu de funcionalidades:\n\t1.Compactar\n\t2.Descompactar\n\t3.Encerrar\n\tSelecione sua funcionalidade:");
+    scanf("%d",&opcao);
+    switch (opcao){
+    case 1:
+        init(tabela_freq);
+    freq_arquivo(nome_original, tabela_freq);
+    
     criar_lista(&lista);
-    preencher(tabela_freq,&lista);
-    printlist(&lista);
-    return 0;
+    preencher(tabela_freq, &lista);
+    
+    if(lista.tam == 0) return 0; 
+    
+    arvore = montar_arve(&lista);
+    
+    colunas = altura(arvore) + 1;
+    dicionario = alocacaodi(colunas);
+    g_dicionario(dicionario, arvore, "", colunas);
+    // Passamos a tabela para ajudar a contar o lixo, e a arvore para o cabeçalho
+    compactar(dicionario, tabela_freq, arvore, nome_original, nome_compactado);
+        break;
+    case 2:
+        descompactar(nome_compactado, nome_descompactado);
+        break;
+    case 3:
+        return 0;
+        break;
+
+    }
+    printf("\t-------------------------------------\n");
+    return 0; 
 }
