@@ -1,0 +1,6 @@
+Sem Heap: é melhor em geral para valores ínfimos, pois a inserção é O(n) e a remoção e O(1)
+Heap: é melhor na inserção (log n) para valores maiores (estatisticamente qualquer valor maior que 1000 ele acaba sendo melhor) 
+na remoção O(Log n) não tem como ser melhor do que o O(1), mas em geral, em valores grandes ele é melhor(são feitas menos bem menos comparações)
+https://cloud.r-project.org/ - R 
+https://code.visualstudio.com/docs/languages/r  - R tutorial baixar R qualquer coisa
+https://marketplace.visualstudio.com/items?itemName=REditorSupport.r - extensao R Vs code
