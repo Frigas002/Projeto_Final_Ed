@@ -7,7 +7,13 @@ Topological sort:
 -https://youtu.be/cIBFEhD77b4?si=IcuFCPS_xuZhQ4Zd
 
 
-SAT solver:
+SAT solver e SMT solver:
 -https://www.youtube.com/watch?v=ki7rzvonbOs
 -https://www.inf.ufpr.br/dpasqualin/d3-dpll/
 -https://www.youtube.com/watch?v=qnEhZFH9gXw
+-https://www.youtube.com/watch?v=FYqg62rYxhs
+-https://www.youtube.com/watch?v=uNdHwTxFOdg
+-https://www.youtube.com/watch?v=geVQZBzzIlk
+-https://www.matem.unam.mx/~omar/math340/simplex-intro.html
+-https://www.geeksforgeeks.org/dsa/introduction-to-branch-and-bound-data-structures-and-algorithms-tutorial/
+-https://online.stat.psu.edu/statprogram/reviews/matrix-algebra/gauss-jordan-elimination
