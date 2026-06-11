@@ -22,4 +22,6 @@ void dar_free(CNF *formula);
 int dpll(CNF *formula, int *atribuicoes, no **raiz);
 void free_tree (no *no);
 
+int sat_para_smt(const char *arquivo_cnf, int **vetor_atribuicoes_saida, int *num_literais);
+
 #endif //SATSOLVER_H

@@ -32,7 +32,7 @@ CNF *dimacs (const char *arquivo){ //funcao pra fazer funfar o arquivo
     FILE *arq = fopen(arquivo, "r");
 
     if(arq == NULL){
-        printf("Vai funfar nao.\n");
+        printf("Erro ao utilizar arquivo teste (arquivo vazio)\n");
         return NULL;
     }
 
@@ -106,7 +106,7 @@ CNF *dimacs (const char *arquivo){ //funcao pra fazer funfar o arquivo
 
 void printar (CNF *formula){
     if(formula == NULL){
-        printf("tem nada p imprimir\n");
+        printf("Nada a imprimir\n");
         return;
     }
 
@@ -115,7 +115,7 @@ void printar (CNF *formula){
         printf("Literais: %d\nClausulas: %d\n", formula->num_literals, formula->num_clauses);
         
         for(int i = 0; i< formula->num_clauses; i++){
-            printf("Clausula %d:", i+1);
+            printf("Clausula %d: ", i+1);
 
             for(int j = 0; j< formula->size_clause[i]; j++){
                 printf("%d ", formula->clauses[i][j]);
@@ -298,6 +298,35 @@ int dpll(CNF *formula, int *atribuicoes, no **no){
     }
 }
 
+int sat_para_smt(const char *arquivo_cnf, int **vetor_atribuicoes_saida, int *num_literais) {
+    CNF *formula = dimacs(arquivo_cnf);
+    if (formula == NULL) return 0;
+
+    int *atribuicoes = (int*) calloc(formula->num_literals + 1, sizeof(int));
+    if (atribuicoes == NULL) {
+        dar_free(formula);
+        return 0;
+    }
+
+    no *raiz = NULL;
+    int res = dpll(formula, atribuicoes, &raiz);
+
+    free_tree(raiz);
+    
+    if (res == 1) {
+        // Se deu SAT, exportamos os dados que o SMT precisa
+        *vetor_atribuicoes_saida = atribuicoes; 
+        *num_literais = formula->num_literals;
+    } else {
+        free(atribuicoes);
+    }
+
+    dar_free(formula);
+    return res; // Retorna 1 para SAT e 0 para UNSAT
+}
+
+
+#ifndef FOR_SMT
 int main(int argc, char *argv[]){
     
     if(argc < 2){
@@ -308,7 +337,7 @@ int main(int argc, char *argv[]){
     CNF *formula = dimacs(argv[1]);
 
     if(formula == NULL){
-        printf("Vai nao man.\n");
+        printf("Formula vazia!\n");
         return 1;
     }
 
@@ -316,7 +345,7 @@ int main(int argc, char *argv[]){
         int *atribuicoes =  (int*) calloc(formula->num_literals +1, sizeof(int));
 
         if(atribuicoes == NULL){
-            printf("Erro fi\n");
+            printf("Sem atribuicoes\n");
             dar_free(formula);
             return 1;
         }
@@ -344,3 +373,4 @@ int main(int argc, char *argv[]){
 return 0;
 
 }
+#endif
