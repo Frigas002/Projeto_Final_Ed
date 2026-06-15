@@ -21,7 +21,6 @@ void init_Sem_Heap(Sem_Heap_pq *pq){
  * Move para direita do maior p menor ate encontrar seu devido lugar de prioridade
  * Do final do array voltando */
 void enqueue_Sem_Heap(Sem_Heap_pq *pq, int item, int *comparacoes){
-    if(pq->size >= MAX_SIZE) return;
     int i = pq->size - 1;
     while (i >= 0){
         (*comparacoes)++; // p contar no final
@@ -76,7 +75,6 @@ void swap(int *a, int *b){
  * bota no fim do array e sobe ele pela arvore ate chegar na posiçao correta, o papa tem
  * que ser bigger que o hijo */
 void enqueue_heap(heap_pq *h, int item, int *comparacoes){
-    if(h->size >= MAX_SIZE) return;
     
     //add no fim da fila
     h->size++;
@@ -158,15 +156,14 @@ int main(){
     // os segundos estao smp passando ele sempre vai dar diff(outra seed tipo mine)
     srand(time(NULL));
 
-    // Starta o Csv
-    FILE *arquivo = fopen("comparacoes_heap.csv", "w");
-    if(arquivo == NULL){
-        printf("Erro ao criar o arquivo CSV!\n");
-        return 1;
-    }
+    // Starta os Csvs
+    FILE *arq_enqueue = fopen("comparacoes_enqueue.csv", "w");
+    FILE *arq_dequeue = fopen("comparacoes_dequeue.csv", "w");
 
-    // titulo das colunas do csv
-    fprintf(arquivo, "Tamanho,Insercao_Sem_Heap,Insercao_Com_Heap,Remocao_Sem_Heap,Remocao_Com_Heap\n");
+
+    // titulo das colunas dos csvs
+    fprintf(arq_enqueue, "Tamanho,Insercao_Sem_Heap,Insercao_Com_Heap\n");
+    fprintf(arq_dequeue, "Tamanho,Remocao_Sem_Heap,Remocao_Com_Heap\n");
     printf("Números Sorteados:\n");
 
     for(int tamanho_atual = 10; tamanho_atual <= 9010; tamanho_atual += 1000){
@@ -205,16 +202,18 @@ int main(){
         dequeue_Sem_Heap(&fila_Sem_Heap_remocao);
         dequeue_heap(&fila_heap_remocao, &comp_remocao_heap);
         
-        // p gravar as linhas no csv
-        fprintf(arquivo, "%d,%d,%d,%d,%d\n", tamanho_atual, comp_insercao_Sem_Heap, comp_insercao_heap, comp_remocao_Sem_Heap, comp_remocao_heap);
+        // p gravar as linhas nos csvs
+        fprintf(arq_enqueue, "%d,%d,%d\n", tamanho_atual, comp_insercao_Sem_Heap, comp_insercao_heap);
+        fprintf(arq_dequeue, "%d,%d,%d\n", tamanho_atual, comp_remocao_Sem_Heap, comp_remocao_heap);
         
         // p visualizar no terminal
         printf("Fila: %4d itens | Sorteado: %5d | Ins. Sem Heap: %4d | Ins. Heap: %2d | Rem. Sem Heap: %d | Rem. Heap: %2d\n", 
                tamanho_atual, numero_sorteado, comp_insercao_Sem_Heap, comp_insercao_heap, comp_remocao_Sem_Heap, comp_remocao_heap);
     }
 
-    fclose(arquivo);
-    printf("O arquivo 'comparacoes_heap.csv' foi gerado.\n");
+    fclose(arq_enqueue);
+    fclose(arq_dequeue);
+    printf("Os arquivos 'comparacoes_enqueue.csv' e 'comparacoes_dequeue.csv' foram gerados.\n");
 
     return 0;
 }
