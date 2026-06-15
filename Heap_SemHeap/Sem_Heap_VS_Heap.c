@@ -21,7 +21,6 @@ void init_Sem_Heap(Sem_Heap_pq *pq){
  * Move para direita do maior p menor ate encontrar seu devido lugar de prioridade
  * Do final do array voltando */
 void enqueue_Sem_Heap(Sem_Heap_pq *pq, int item, int *comparacoes){
-    if(pq->size >= MAX_SIZE) return;
     int i = pq->size - 1;
     while (i >= 0){
         (*comparacoes)++; // p contar no final
@@ -76,7 +75,6 @@ void swap(int *a, int *b){
  * bota no fim do array e sobe ele pela arvore ate chegar na posiçao correta, o papa tem
  * que ser bigger que o hijo */
 void enqueue_heap(heap_pq *h, int item, int *comparacoes){
-    if(h->size >= MAX_SIZE) return;
     
     //add no fim da fila
     h->size++;
@@ -161,10 +159,7 @@ int main(){
     // Starta os Csvs
     FILE *arq_enqueue = fopen("comparacoes_enqueue.csv", "w");
     FILE *arq_dequeue = fopen("comparacoes_dequeue.csv", "w");
-    if(arq_enqueue == NULL || arq_dequeue == NULL){
-        printf("Erro ao criar os arquivos CSV!\n");
-        return 1;
-    }
+
 
     // titulo das colunas dos csvs
     fprintf(arq_enqueue, "Tamanho,Insercao_Sem_Heap,Insercao_Com_Heap\n");
