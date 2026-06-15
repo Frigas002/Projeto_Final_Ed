@@ -103,15 +103,62 @@ void pivotar (tableau *t, int lin_pivo, int col_pivo){ //eliminacao de gauss jor
 }
 
 int executar (tableau *t){
-    for(int i = 0; i< 20000; i++){
+    
+    // --- FASE 1: SIMPLEX DUAL ---
+    // Resolve os resultados negativos criados pelas restrições do B&B
+    for(int k = 0; k < 20000; k++){
+        int lin_pivo_dual = -1;
+        double menor_b = -1e-5;
+
+        // Procura a linha com o resultado mais negativo
+        for(int i = 0; i < t->linhas - 1; i++){
+            if(t->matriz[i][t->colunas - 1] < menor_b){
+                menor_b = t->matriz[i][t->colunas - 1];
+                lin_pivo_dual = i;
+            }
+        }
+
+        if(lin_pivo_dual == -1) break; // Se não tem negativo, sai do Dual Simplex!
+
+        int col_pivo_dual = -1;
+        double menor_razao_dual = -1.0;
+
+        // Procura a coluna pivô
+        for(int j = 0; j < t->colunas - 1; j++){
+            double coef = t->matriz[lin_pivo_dual][j];
+            if(coef < -1e-5){ // No Dual, o pivô tem que ser negativo
+                double razao = fabs(t->matriz[t->linhas - 1][j] / coef);
+                if(col_pivo_dual == -1 || razao < menor_razao_dual){
+                    menor_razao_dual = razao;
+                    col_pivo_dual = j;
+                }
+            }
+        }
+
+        if(col_pivo_dual == -1){
+            return 0; // Se a linha é negativa mas não tem coeficiente negativo, é impossível! Poda o nó.
+        }
+
+        pivotar(t, lin_pivo_dual, col_pivo_dual);
+    }
+    // -----------------------------
+
+    // --- FASE 2: SIMPLEX PRIMAL ---
+    // Seu código original que otimiza a função objetivo
+    for(int i = 0; i < 20000; i++){
         int coluna = find_col(t);
 
         if(coluna == -1){
-            return 1;
+            // A blindagem de segurança continua aqui
+            for(int l = 0; l < t->linhas - 1; l++) {
+                if(t->matriz[l][t->colunas - 1] < -1e-5) {
+                    return 0; 
+                }
+            }
+            return 1; 
         }
 
         int linha = find_line(t, coluna);
-
 
         if(linha == -1){
             return 0;
@@ -123,30 +170,29 @@ int executar (tableau *t){
     return 0;
 }
 
-double extrair (tableau *t, int indice_col){ //serve p extrair o valor de uma variavel x de uma coluna da matriz
-    int linha_com_um= -1;
+double extrair (tableau *t, int indice_col){ 
+    int linha_com_um = -1;
     int contador_uns = 0;
     int contador_zeros = 0;
+    int num_linhas = t->linhas - 1; // ignora a linha objetivo
 
-    for(int i = 0; i < t->linhas; i++){
+    for(int i = 0; i < num_linhas; i++){ 
         double valor = t->matriz[i][indice_col];
 
-        if(valor == 1.0){
+        if(fabs(valor - 1.0) < 1e-5){
             linha_com_um = i;
             contador_uns++;
-        }
-
-        else if(valor == 0.0){
+        } else if (fabs(valor) < 1e-5) {
             contador_zeros++;
         }
-
     }
 
-    if(contador_uns == 1 && (contador_zeros == t->linhas -1)){
-        return t->matriz[linha_com_um][t->colunas-1]; //se a coluna estiver na base (tudo 0 e so tem um pivo com valor 1), ta ok: retorna o valor q ficou la no resultado p essa variavel
+    // Para ser básica, tem que ter EXATAMENTE um 1.0 e o resto todo 0.0
+    if(contador_uns == 1 && contador_zeros == (num_linhas - 1)){
+        return t->matriz[linha_com_um][t->colunas-1]; 
     }
 
-    return 0.0;
+    return 0.0; // Se não for básica, ela vale 0 na solução atual
 }
 
 tableau *ler_arquivo(const char *nome_arq){
@@ -187,7 +233,7 @@ tableau *ler_arquivo(const char *nome_arq){
             }
 
             int col_folga = var_originais + i;
-            tab->matriz[i][col_folga] = 1.0;
+            tab->matriz[i][col_folga] = 1.0; //coloca os coeficientes das variaveis de folga como 1
             
             int ultima_col = tab->colunas - 1;
             fscanf(arquivo, "%lf", &tab->matriz[i][ultima_col]);
@@ -238,59 +284,61 @@ int encontrar_fracao(tableau *t, int var_originais, int *indice_variavel, double
 }//isso é necessario pela forma que os doubles sao armazenados na memoria. Ex: 3.00000000000000044 (apos sucessivas operações eh esse nmr que ta na matriz)
 //se comparar 3.0000000000000044 com 3 (usando ==) vai dar erro e isso destroi as decisoes futuras
 
-tableau *add_restricao(tableau *atual, int indice_variavel, double limite, int maior_ou_igual){
-    int restricoes_antigas = atual->linhas-1; //p descobrir as restricoes originais pegamos o valor atual - 1 (tira a linha objetivo)
-    int col_folgaeb = restricoes_antigas + 1; //folga e b sao dadas pela qntd de restricoes + 1
-    int var_originais = atual->colunas - col_folgaeb; // pra descobrir quantas variaveis temos faz-se o seguinte:
+tableau *add_restricao(tableau *atual, int indice_variavel, double limite, int maior_ou_igual) {
+    int restricoes_antigas = atual->linhas - 1;
+    int col_folgaeb = restricoes_antigas + 1;
+    int var_originais = atual->colunas - col_folgaeb;
 
-    //p formar as colunas: variaveis + variaveis de folga + resultado ... variaveis =  colunas - variaveis de folga - resultado (colunas)
+    // Cria o novo tableau com uma linha a mais (para a restrição) 
+    // e uma coluna a mais (para a nova variável de folga)
+    tableau *tab = criar_tab(restricoes_antigas + 1, var_originais);
 
-    tableau *tab = criar_tab(restricoes_antigas+1, var_originais); //coloquei "restricoes_antigas + 1" por uma questão semantica
-    //tab é o novo tableau e atual passa a ser o antigo
-
-    for(int i = 0; i< restricoes_antigas; i++){
-
-        for(int j = 0; j<var_originais; j++){ //esse for copia a parte das variaveis originais no lugar adequado
+    // 1. Copia as restrições antigas (variáveis originais + folgas antigas)
+    for (int i = 0; i < restricoes_antigas; i++) {
+        for (int j = 0; j < atual->colunas - 1; j++) {
             tab->matriz[i][j] = atual->matriz[i][j];
         }
-
-        for(int j = 0; j<restricoes_antigas; j++){ //esse eh o mais importante, ele copia pra o tableau novo a parte das folgas no lugar correto
-            tab->matriz[i][var_originais+j] = atual->matriz[i][var_originais+j];
-
-            //quando adicionamos uma restriçao ela fica com uma variavel de folga a mais, ou seja, precisa-se ter cuidado na hr de colocar p dentro
-            //se esse for fosse feito com tab->matriz[i][j] daria errado pq ele ia colocar a coluna de resultado nessa parte
-        }
-
-        tab->matriz[i][tab->colunas - 1] = atual->matriz[i][atual->colunas - 1]; //aqui ele copia a coluna resultado do tableau antigo pro novo na posicao correta
+        tab->matriz[i][tab->colunas - 1] = atual->matriz[i][atual->colunas - 1];
     }
 
+    // 2. Copia a linha objetivo (incluindo as folgas antigas)
     int new_lin_obj = tab->linhas - 1;
-    int old_lin_onj = atual->linhas - 1;
-
-    for(int i = 0; i<var_originais; i++){
-        tab->matriz[new_lin_obj][i] = atual->matriz[old_lin_onj][i];
+    int old_lin_obj = atual->linhas - 1;
+    for (int i = 0; i < atual->colunas - 1; i++) {
+        tab->matriz[new_lin_obj][i] = atual->matriz[old_lin_obj][i];
     }
+    tab->matriz[new_lin_obj][tab->colunas - 1] = atual->matriz[old_lin_obj][atual->colunas - 1];
 
-    tab->matriz[new_lin_obj][tab->colunas-1] = atual->matriz[old_lin_onj][atual->colunas-1];
-
-    int nova_linha_restricao = tab->linhas - 2; //logo atras da linha objetivo
-    
-    //flag pra aplicar o sinal da restricao (se for 1 ele aplica)
-    //ex: simplex para em 2.73 e eu quero ramificar pra 2 e 3 (tenho que banir os valores quebrados)
-
-    if(maior_ou_igual == 1){ //se a restricao for >= eu tenho que fazer esse truque aí de multiplicar a eq inteira por -1 e nao quebrar o simplex
-    
+    // 3. Monta a nova restrição (penúltima linha)
+    int nova_linha_restricao = tab->linhas - 2;
+    if (maior_ou_igual == 1) {
         tab->matriz[nova_linha_restricao][indice_variavel] = -1.0;
         tab->matriz[nova_linha_restricao][tab->colunas - 1] = -limite;
-    }
-
-    else{//se a restricao for menor ou igual eu posso jogar direto na matriz ex: x<=2
+    } else {
         tab->matriz[nova_linha_restricao][indice_variavel] = 1.0;
-        tab->matriz[nova_linha_restricao][tab->colunas-1] = limite;
+        tab->matriz[nova_linha_restricao][tab->colunas - 1] = limite;
     }
 
-    int nova_folga = var_originais + restricoes_antigas;
-    tab->matriz[nova_linha_restricao][nova_folga] = 1.0;
+    // 4. Define a nova variável de folga na nova restrição
+    // A coluna da nova folga é a última das variáveis de folga antes do RHS
+    int nova_coluna_folga = var_originais + restricoes_antigas;
+    tab->matriz[nova_linha_restricao][nova_coluna_folga] = 1.0;
+
+    // 5. Ajuste da base: garante que a coluna da variável restrita seja básica (zeros na coluna)
+    int linha_basica = -1;
+    for (int i = 0; i < restricoes_antigas; i++) {
+        if (fabs(tab->matriz[i][indice_variavel] - 1.0) < 1e-5) {
+            linha_basica = i;
+            break;
+        }
+    }
+
+    if (linha_basica != -1) {
+        double fator = tab->matriz[nova_linha_restricao][indice_variavel];
+        for (int j = 0; j < tab->colunas; j++) {
+            tab->matriz[nova_linha_restricao][j] -= (fator * tab->matriz[linha_basica][j]);
+        }
+    }
 
     return tab;
 }
@@ -300,6 +348,7 @@ resultado branch_and_bound(tableau *t, int var_originais){
     r.tem_solucao = 0;
     r.variaveis = var_originais;
     r.valores = (double*) calloc(var_originais, sizeof(double));
+    r.fobj_valor = 0.0;
 
     int viabilidade = executar(t);
     
@@ -311,17 +360,20 @@ resultado branch_and_bound(tableau *t, int var_originais){
         int indice_variavel;
         double valor_fracionario;
 
-        if(encontrar_fracao(t,var_originais, &indice_variavel, &valor_fracionario) == 0){
+        if(encontrar_fracao(t, var_originais, &indice_variavel, &valor_fracionario) == 0){
             r.tem_solucao = 1;
 
-            for(int i = 0;  i<var_originais; i++){
-                r.valores[i] = extrair(t, i);//i como coluna fe
+            for(int i = 0;  i < var_originais; i++){
+                r.valores[i] = extrair(t, i);
             }
+            
+            r.fobj_valor = t->matriz[t->linhas - 1][t->colunas - 1]; 
+            
             return r;
         }
 
-        double piso = floor(valor_fracionario); //se eu trabalho com o piso, a restricao eh com <=
-        double teto = ceil(valor_fracionario);//se eu tralho com teto, a restricao eh com >=
+        double piso = floor(valor_fracionario); 
+        double teto = ceil(valor_fracionario);
 
         tableau *esq = add_restricao(t, indice_variavel, piso, 0);
         resultado r_esq = branch_and_bound(esq, var_originais);
@@ -333,32 +385,22 @@ resultado branch_and_bound(tableau *t, int var_originais){
 
         free(r.valores);
 
-
-        if(r_esq.tem_solucao == 1 && r_dir.tem_solucao == 1){ //avalia qual dos valores (esq ou dir) retorna o maior possivel para a funcao objetivo
-            double esq = 0;
-            double dir = 0;
-            int lin_fo = t->linhas - 1;
-
-            for(int i = 0; i < var_originais; i++){
-                esq += t->matriz[lin_fo][i] *r_esq.valores[i];
-                dir += t->matriz[lin_fo][i] *r_dir.valores[i];
-            }
-
-            if(esq >= dir){
-                free(r_dir.valores);
+        if(r_esq.tem_solucao == 1 && r_dir.tem_solucao == 1){ 
+            if(r_esq.fobj_valor >= r_dir.fobj_valor){
+                if(r_dir.valores != NULL) free(r_dir.valores);
                 return r_esq;
             }
             else{
-                free(r_esq.valores);
+                if(r_esq.valores != NULL) free(r_esq.valores);
                 return r_dir;
             }
         }
         else if(r_esq.tem_solucao == 1){
-            free(r_dir.valores);
+            if(r_dir.valores != NULL) free(r_dir.valores);
             return r_esq;
         }
         else{
-            free(r_esq.valores);
+            if(r_esq.valores != NULL) free(r_esq.valores);
             return r_dir;
         }
     }

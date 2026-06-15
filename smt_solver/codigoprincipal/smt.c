@@ -97,7 +97,7 @@ int main(int argc, char *argv[]){
         }
 
         else{
-            printf("Resultado final: UNSAT! (as restricoes são inviaveis)\n");
+            printf("Resultado final: UNSAT! (as restricoes sao inviaveis)\n");
         }
 
         free(atribuicoes_sat);

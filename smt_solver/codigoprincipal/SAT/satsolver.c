@@ -5,7 +5,7 @@
 //cnf e a forma normal conjuntiva ex: ((AvB) ^ (-B V C)) soq esse aqui usa numeros
 
 no* criar_no (int literal, int valor){ //agr usa arvore propriamente
-    no *novo_no = (no*) malloc(sizeof(no));
+    no *novo_no = (no*) malloc(sizeof(no)); //usa-se malloc pois o lixo de memoria que o malloc guarda é sobrescrito direto na função (logo em seguida)
 
     novo_no->literal = literal;
     novo_no->valor = valor;
@@ -29,7 +29,7 @@ void free_tree(no *no){
 }
 
 CNF *dimacs (const char *arquivo){ //funcao pra fazer funfar o arquivo
-    FILE *arq = fopen(arquivo, "r");
+    FILE *arq = fopen(arquivo, "r"); //cria o arquivo
 
     if(arq == NULL){
         printf("Erro ao utilizar arquivo teste (arquivo vazio)\n");
@@ -55,7 +55,7 @@ CNF *dimacs (const char *arquivo){ //funcao pra fazer funfar o arquivo
             }
         }
 
-        char formato_arquivo [10];
+        char formato_arquivo [10];//so p "descartar" o cnf que vem no arquivo
         int lidos = fscanf(arq, "p %s %d %d", formato_arquivo, &formula->num_literals, &formula->num_clauses);
 
         if(lidos != 3){
@@ -71,10 +71,10 @@ CNF *dimacs (const char *arquivo){ //funcao pra fazer funfar o arquivo
 
 
             for(int i = 0; i< formula->num_clauses; i++){
-                int espaco_literais = 4; //espaco x de inicio
+                int espaco_literais = 4; //aposta de tamanho no inicio
                 int quantidade_agr = 0; //p contar os literais e servir de indice
                 int literal;
-                int *clause = (int*) malloc(espaco_literais * sizeof(int)); //clausula atual
+                int *clause = (int*) malloc(espaco_literais * sizeof(int)); //vetor temporario
 
                 while(fscanf(arq, "%d", &literal) == 1){
                     if(literal == 0){ //se for 0 acabou a linha
@@ -252,7 +252,7 @@ int dpll(CNF *formula, int *atribuicoes, no **no){
             }
         } //se livre n for mudado significa q n tem mais chute p fzr :/
 
-        if(livre == -1){ //pro caso do livre n ter mudado
+        if(livre == -1){ //se nao tem livre pra chutar retorna 0 e eh unsat
             return 0;
         }
 
@@ -342,7 +342,7 @@ int main(int argc, char *argv[]){
     }
 
     else{
-        int *atribuicoes =  (int*) calloc(formula->num_literals +1, sizeof(int));
+        int *atribuicoes =  (int*) calloc(formula->num_literals +1, sizeof(int)); //determina todos os literais como "indecididos"
 
         if(atribuicoes == NULL){
             printf("Sem atribuicoes\n");

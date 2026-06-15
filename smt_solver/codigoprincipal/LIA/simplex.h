@@ -11,6 +11,7 @@ typedef struct{
     int tem_solucao;
     double *valores;
     int variaveis;
+    double fobj_valor;
 }resultado;
 
 tableau *criar_tab(int restricoes, int var);
