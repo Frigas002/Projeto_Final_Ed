@@ -17,3 +17,9 @@ SAT solver e SMT solver:
 -https://www.matem.unam.mx/~omar/math340/simplex-intro.html
 -https://www.geeksforgeeks.org/dsa/introduction-to-branch-and-bound-data-structures-and-algorithms-tutorial/
 -https://online.stat.psu.edu/statprogram/reviews/matrix-algebra/gauss-jordan-elimination
+
+Comandos pra criar arquivos, executar e etc:
+./smt_completo.exe teste.cnf matematica.txt (executa o smt)
+./sat_puro.exe teste.cnf (executa o sat puro)
+gcc -DFOR_SMT smt.c LIA/simplex.c SAT/satsolver.c -o smt_completo.exe -lm (cria o executavel do smt)
+gcc smt.c -o sat_puro.exe (cria o executavel do sat)
