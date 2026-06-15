@@ -1,74 +1,173 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/* --- DEFINIÇÃO DAS ESTRUTURAS --- */
+#define MAX_VERTICES 100
 
-typedef struct No {
-    int destino;
-    struct No* prox;
-} No;
+// Estados usados na abordagem DFS (para detecção de ciclos)
+#define NAO_VISITADO 0
+#define VISITANDO 1
+#define VISITADO 2
 
-typedef struct Grafo {
-    int num_vertices;
-    No** listas_adjacencia;
-    int* in_degree;
+// --- ESTRUTURAS DO GRAFO E AUXILIARES ---
+
+typedef struct {
+    int matrizAdj[MAX_VERTICES][MAX_VERTICES];
+    int numVertices;
 } Grafo;
 
+// Pilha Estática para a abordagem DFS
+typedef struct {
+    int dados[MAX_VERTICES];
+    int topo;
+} Pilha;
 
-/* --- ASSINATURAS DAS FUNÇÕES --- */
+// Fila Estática para o Algoritmo de Kahn (BFS)
+typedef struct {
+    int dados[MAX_VERTICES];
+    int frente;
+    int tras;
+} Fila;
 
-// Função para alocar a memória inicial do grafo
-Grafo* criarGrafo(int num_vertices) {
-    // TODO: Usar malloc para alocar o Grafo.
-    // TODO: Usar malloc para alocar o array listas_adjacencia (tamanho num_vertices).
-    // TODO: Usar malloc para alocar o array in_degree (tamanho num_vertices).
-    // TODO: Fazer um loop para inicializar todas as listas com NULL e in_degrees com 0.
-    // TODO: Retornar o ponteiro do grafo criado.
-    return NULL; // Substitua isso depois
+// --- FUNÇÕES AUXILIARES DE PILHA E FILA ---
+
+void initPilha(Pilha *p) { p->topo = -1; }
+void push(Pilha *p, int val) { p->dados[++(p->topo)] = val; }
+int pop(Pilha *p) { return p->dados[(p->topo)--]; }
+int pilhaVazia(Pilha *p) { return p->topo == -1; }
+
+void initFila(Fila *f) { f->frente = 0; f->tras = 0; }
+void enfileirar(Fila *f, int val) { f->dados[f->tras++] = val; }
+int desenfileirar(Fila *f) { return f->dados[f->frente++]; }
+int filaVazia(Fila *f) { return f->frente == f->tras; }
+
+// --- ABORDAGEM 1: VIA DFS (BUSCA EM PROFUNDIDADE) ---
+
+int dfsAux(Grafo *g, int u, int estado[], Pilha *p) {
+    if (estado[u] == VISITANDO) return 0; // Encontrou um CICLO!
+    if (estado[u] == VISITADO) return 1;
+
+    estado[u] = VISITANDO;
+
+    for (int v = 0; v < g->numVertices; v++) {
+        if (g->matrizAdj[u][v] == 1) {
+            if (!dfsAux(g, v, estado, p)) return 0;
+        }
+    }
+
+    estado[u] = VISITADO;
+    push(p, u); // O nó entra na pilha no backtracking (pós-fixado)
+    return 1;
 }
 
-// Função para adicionar uma conexão (aresta direcionada)
-void adicionarAresta(Grafo* grafo, int origem, int destino) {
-    // TODO: Criar um novo No usando malloc.
-    // TODO: Configurar o 'destino' do novo No.
-    // TODO: Inserir esse novo No no início da lista_adjacencia[origem].
-    // TODO: Incrementar o in_degree[destino] em 1.
+void ordenacaoTopologicaDFS(Grafo *g) {
+    Pilha p;
+    initPilha(&p);
+    int estado[MAX_VERTICES];
+    
+    for (int i = 0; i < g->numVertices; i++) estado[i] = NAO_VISITADO;
+
+    for (int i = 0; i < g->numVertices; i++) {
+        if (estado[i] == NAO_VISITADO) {
+            if (!dfsAux(g, i, estado, &p)) {
+                printf("\n⚠️ [DFS] ERRO: Grafo possui um CICLO! Impossivel ordenar.\n");
+                return;
+            }
+        }
+    }
+
+    printf("🎓 Ordem Topologica (DFS + Pilha): ");
+    while (!pilhaVazia(&p)) {
+        printf("%d ", pop(&p));
+    }
+    printf("\n");
 }
 
-// Função principal do Algoritmo de Kahn
-void ordenacaoTopologica(Grafo* grafo) {
-    // TODO: Criar uma fila (um simples array de inteiros serve) e variáveis de 'inicio' e 'fim'.
-    // TODO: Percorrer o array in_degree. Todo vértice com valor 0 deve entrar na fila.
-    // TODO: Criar um loop "enquanto a fila não estiver vazia".
-    // Dentro do loop:
-    //   1. Tirar um vértice da fila (e já pode dar um printf nele, pois essa é a ordem!).
-    //   2. Criar um ponteiro auxiliar para percorrer a lista_adjacencia desse vértice.
-    //   3. Para cada nó vizinho na lista, diminuir o in_degree dele em 1.
-    //   4. Se o in_degree do vizinho chegar a 0, colocá-lo na fila.
+// --- ABORDAGEM 2: ALGORITMO DE KAHN (VIA GRAUS DE ENTRADA / BFS) ---
+
+void ordenacaoTopologicaKahn(Grafo *g) {
+    int grauEntrada[MAX_VERTICES] = {0};
+    int ordem[MAX_VERTICES];
+    int visitadosCont = 0;
+    Fila f;
+    initFila(&f);
+
+    // Passo 1: Calcular o grau de entrada (in-degree) de cada vértice
+    for (int u = 0; u < g->numVertices; u++) {
+        for (int v = 0; v < g->numVertices; v++) {
+            if (g->matrizAdj[u][v] == 1) {
+                grauEntrada[v]++;
+            }
+        }
+    }
+
+    // Passo 2: Enfileirar todos os vértices com grau de entrada ZERO
+    for (int i = 0; i < g->numVertices; i++) {
+        if (grauEntrada[i] == 0) {
+            enfileirar(&f, i);
+        }
+    }
+
+    // Passo 3: Processar a fila
+    while (!filaVazia(&f)) {
+        int u = desenfileirar(&f);
+        ordem[visitadosCont++] = u; // Adiciona à ordenação final
+
+        // Reduz o grau de entrada de todos os vizinhos de 'u'
+        for (int v = 0; v < g->numVertices; v++) {
+            if (g->matrizAdj[u][v] == 1) {
+                grauEntrada[v]--;
+                // Se o grau do vizinho zerou, ele está livre para ser executado
+                if (grauEntrada[v] == 0) {
+                    enfileirar(&f, v);
+                }
+            }
+        }
+    }
+
+    // Passo 4: Se não visitou todos os nós, significa que há um ciclo
+    if (visitadosCont != g->numVertices) {
+        printf("\n⚠️ [Kahn] ERRO: Grafo possui um CICLO! Impossivel ordenar.\n");
+        return;
+    }
+
+    // Imprime o resultado obtido pelo método de Kahn
+    printf("🎓 Ordem Topologica (Kahn + Fila):  ");
+    for (int i = 0; i < visitadosCont; i++) {
+        printf("%d ", ordem[i]);
+    }
+    printf("\n");
 }
 
-
-/* --- PROGRAMA PRINCIPAL --- */
+// --- FUNÇÃO PRINCIPAL ---
 
 int main() {
-    // Exemplo: Criando um grafo com 6 vértices (de 0 a 5)
-    int total_vertices = 6;
-    Grafo* meuGrafo = criarGrafo(total_vertices);
+    Grafo g;
+    g.numVertices = 6;
 
-    // Simulando algumas dependências (exemplo: calçar meias antes do sapato)
-    // Se o vértice 5 aponta para o 2, significa que 5 deve vir ANTES de 2.
-    adicionarAresta(meuGrafo, 5, 2);
-    adicionarAresta(meuGrafo, 5, 0);
-    adicionarAresta(meuGrafo, 4, 0);
-    adicionarAresta(meuGrafo, 4, 1);
-    adicionarAresta(meuGrafo, 2, 3);
-    adicionarAresta(meuGrafo, 3, 1);
+    // Inicializa a matriz com zeros
+    for (int i = 0; i < g.numVertices; i++) {
+        for (int j = 0; j < g.numVertices; j++) g.matrizAdj[i][j] = 0;
+    }
 
-    printf("A Ordem Topologica encontrada e:\n");
-    ordenacaoTopologica(meuGrafo);
-    printf("\n");
+    // Criando as arestas direcionadas do DAG de exemplo:
+    // 5 -> 2, 5 -> 0, 4 -> 0, 4 -> 1, 2 -> 3, 3 -> 1
+    g.matrizAdj[5][2] = 1;
+    g.matrizAdj[5][0] = 1;
+    g.matrizAdj[4][0] = 1;
+    g.matrizAdj[4][1] = 1;
+    g.matrizAdj[2][3] = 1;
+    g.matrizAdj[3][1] = 1;
 
-    // TODO Opcional (mas recomendado!): Criar uma função para dar 'free' em toda a memória alocada.
+    printf("=== TESTE 1: GRAFO ACICLICO DIRECIONADO (DAG) ===\n");
+    ordenacaoTopologicaDFS(&g);
+    ordenacaoTopologicaKahn(&g);
+
+    // --- TESTE DE CICLO ---
+    printf("\n=== TESTE 2: INTRODUZINDO UM CICLO (1 -> 4 e 4 -> 1) ===\n");
+    g.matrizAdj[1][4] = 1; // Cria dependência cíclica indesejada
+    
+    ordenacaoTopologicaDFS(&g);
+    ordenacaoTopologicaKahn(&g);
 
     return 0;
 }
