@@ -80,7 +80,7 @@ void freq_arquivo(const char *nome_arquivo, unsigned int tab[]) {
         }
         fclose(arq);
     } else {
-        printf("\tErro: Crie um arquivo '%s' na pasta para testar.\n", nome_arquivo);
+        printf("\tErro: Não existe um arquivo '%s' na pasta para compactar.\n", nome_arquivo);
     }
 }
 
@@ -360,35 +360,47 @@ int main() {
     int colunas, opcao;
     char **dicionario;
     
-    const char *nome_original = "teste.bmp";
-    const char *nome_compactado = "teste.huff";
-    const char *nome_descompactado = "resultado.bmp";
 
-    
     printf("\t-------------------------------------\n");
     printf("\tMenu de funcionalidades:\n\t1.Compactar\n\t2.Descompactar\n\t3.Encerrar\n\tSelecione sua funcionalidade:");
     scanf("%d",&opcao);
     switch (opcao){
-    case 1:
+    case 1:{
+        char nome[TAM],nome_compactado[TAM];       
+        printf("\n\tNome do arquivo a ser compactado:");
+        scanf("%s",nome);
+        sprintf(nome_compactado,"%s.huff",nome);
+
+
+
         init(tabela_freq);
-    freq_arquivo(nome_original, tabela_freq);
+        freq_arquivo(nome, tabela_freq);
     
-    criar_lista(&lista);
-    preencher(tabela_freq, &lista);
+        criar_lista(&lista);
+        preencher(tabela_freq, &lista);
     
-    if(lista.tam == 0) return 0; 
+        if(lista.tam == 0) return 0; 
     
-    arvore = montar_arve(&lista);
+        arvore = montar_arve(&lista);
     
-    colunas = altura(arvore) + 1;
-    dicionario = alocacaodi(colunas);
-    g_dicionario(dicionario, arvore, "", colunas);
-    // Passamos a tabela para ajudar a contar o lixo, e a arvore para o cabeçalho
-    compactar(dicionario, tabela_freq, arvore, nome_original, nome_compactado);
+        colunas = altura(arvore) + 1;
+        dicionario = alocacaodi(colunas);
+        g_dicionario(dicionario, arvore, "", colunas);
+        // Passamos a tabela para ajudar a contar o lixo, e a arvore para o cabeçalho
+        compactar(dicionario, tabela_freq, arvore, nome, nome_compactado);
         break;
-    case 2:
+    }
+    case 2:{
+        char nome_compactado[TAM];       
+        printf("\n\tNome do arquivo a ser descompactado:");
+        scanf("%s",nome_compactado);
+        int tam_des=strlen(nome_compactado)-5;
+        char nome_descompactado[strlen(nome_compactado)-5];
+        strncpy(nome_descompactado,nome_compactado,tam_des);
+        nome_descompactado[tam_des]='\0';
         descompactar(nome_compactado, nome_descompactado);
         break;
+    }
     case 3:
         return 0;
         break;
