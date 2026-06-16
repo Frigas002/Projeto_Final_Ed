@@ -104,8 +104,6 @@ void pivotar (tableau *t, int lin_pivo, int col_pivo){ //eliminacao de gauss jor
 
 int executar (tableau *t){
     
-    // --- FASE 1: SIMPLEX DUAL ---
-    // Resolve os resultados negativos criados pelas restrições do B&B
     for(int k = 0; k < 20000; k++){
         int lin_pivo_dual = -1;
         double menor_b = -1e-5;
@@ -118,7 +116,7 @@ int executar (tableau *t){
             }
         }
 
-        if(lin_pivo_dual == -1) break; // Se não tem negativo, sai do Dual Simplex!
+        if(lin_pivo_dual == -1) break;
 
         int col_pivo_dual = -1;
         double menor_razao_dual = -1.0;
@@ -136,20 +134,17 @@ int executar (tableau *t){
         }
 
         if(col_pivo_dual == -1){
-            return 0; // Se a linha é negativa mas não tem coeficiente negativo, é impossível! Poda o nó.
+            return 0; // Se a linha é negativa mas não tem coeficiente negativo é impossivel
         }
 
         pivotar(t, lin_pivo_dual, col_pivo_dual);
     }
-    // -----------------------------
 
-    // --- FASE 2: SIMPLEX PRIMAL ---
-    // Seu código original que otimiza a função objetivo
     for(int i = 0; i < 20000; i++){
         int coluna = find_col(t);
 
         if(coluna == -1){
-            // A blindagem de segurança continua aqui
+
             for(int l = 0; l < t->linhas - 1; l++) {
                 if(t->matriz[l][t->colunas - 1] < -1e-5) {
                     return 0; 
@@ -187,7 +182,7 @@ double extrair (tableau *t, int indice_col){
         }
     }
 
-    // Para ser básica, tem que ter EXATAMENTE um 1.0 e o resto todo 0.0
+    // Para estar no padrao tem que ter EXATAMENTE um 1.0 e o resto todo mundo 0.0
     if(contador_uns == 1 && contador_zeros == (num_linhas - 1)){
         return t->matriz[linha_com_um][t->colunas-1]; 
     }
@@ -244,29 +239,6 @@ tableau *ler_arquivo(const char *nome_arq){
     }
 }
 
-tableau *clonar(tableau *origin){ //pra testar as variaveis precisa-se mexer no tableau (pra nao estragar ele com caminhos errados, a gnt faz uma copia)
-    if(origin == NULL){
-        return NULL;
-    }
-    
-    else{
-        tableau *clone = (tableau*) malloc(sizeof(tableau));
-
-        clone->linhas = origin->linhas;
-        clone->colunas = origin->colunas;
-
-        clone->matriz = (double**) malloc(clone->linhas * sizeof(double*)); //aloca as linhas da matriz
-        for(int i = 0; i < clone->linhas; i++){//pra cada linha aloca as colunas
-            clone->matriz[i] = (double*) malloc(clone->colunas * sizeof(double));
-
-            for(int j = 0; j< clone->colunas; j++){ //copia a matriz original na copia linha por linha / coluna por coluna
-                clone->matriz[i][j] = origin->matriz[i][j];
-            }
-        }
-
-        return clone;
-    }
-}
 
 int encontrar_fracao(tableau *t, int var_originais, int *indice_variavel, double *valor_fracao){//depois de pegar o numero como double
     for(int i = 0; i < var_originais; i++){
