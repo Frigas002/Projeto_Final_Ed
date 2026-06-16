@@ -395,7 +395,7 @@ int main() {
         printf("\n\tNome do arquivo a ser descompactado:");
         scanf("%s",nome_compactado);
         int tam_des=strlen(nome_compactado)-5;
-        char nome_descompactado[strlen(nome_compactado)-5];
+        char nome_descompactado[tam_des + 1];
         strncpy(nome_descompactado,nome_compactado,tam_des);
         nome_descompactado[tam_des]='\0';
         descompactar(nome_compactado, nome_descompactado);
