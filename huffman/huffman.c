@@ -4,21 +4,13 @@
 #include <string.h>
 
 #define TAM 256
-//o código está com comentários que pedi pro gemini fazer, antes do nosso dia eu tiro isso e deixo anotações simples
-/**
- * @brief Estrutura do Nó da Árvore de Huffman.
- * Utiliza void* para o dado, garantindo generalidade.
- */
+
 typedef struct arve {
     void* caracter; 
     int frequencia;
     struct arve *esq, *dir, *prox;
 } arve;
 
-/**
- * @brief Estrutura da Lista Encadeada (Fila de Prioridade).
- * Utiliza void* para apontar para o início genérico.
- */
 typedef struct Lista {
     void *inicio;
     int tam;
@@ -159,10 +151,7 @@ void g_dicionario(char **dicionario, arve *raiz, char *caminho, int colunas) {
     }
 }
 
-/**
- * @brief Calcula o tamanho da árvore em bytes para o cabeçalho.
- * Considera o escape '\' caso a folha seja '*' ou '\'.
- */
+
 void tamanho_arvore_arquivo(arve *raiz, int *tamanho) {
     if (raiz == NULL) return;
     if (raiz->esq == NULL && raiz->dir == NULL) {
@@ -179,9 +168,8 @@ void tamanho_arvore_arquivo(arve *raiz, int *tamanho) {
     }
 }
 
-/**
- * @brief Salva a árvore no arquivo em Pré-Ordem.
- */
+//salva a árvore no arquivo em Pré-Ordem.
+
 void salvar_arvore_arquivo(arve *raiz, FILE *out) {
     if (raiz == NULL) return;
     if (raiz->esq == NULL && raiz->dir == NULL) {
@@ -199,9 +187,6 @@ void salvar_arvore_arquivo(arve *raiz, FILE *out) {
     }
 }
 
-/**
- * @brief Calcula o lixo em bits no último byte do arquivo.
- */
 int calcular_lixo(char **dicionario, unsigned int tab[]) {
     long long total_bits = 0;
     for (int i = 0; i < TAM; i++) {
@@ -212,9 +197,7 @@ int calcular_lixo(char **dicionario, unsigned int tab[]) {
     return (8 - (total_bits % 8)) % 8;
 }
 
-/**
- * @brief Compacta seguindo o formato: 2 Bytes Header -> Árvore (Pré-ordem) -> Dados
- */
+// compacta em 2 bytes de cabeçalho, arvore em pré-ordem e dados
 void compactar(char** dicionario, unsigned int tab[], arve *arvore, const char *arq_entrada, const char *arq_saida) {
     FILE *in = fopen(arq_entrada, "rb");
     FILE *out = fopen(arq_saida, "wb");
@@ -224,19 +207,14 @@ void compactar(char** dicionario, unsigned int tab[], arve *arvore, const char *
         tamanho_arvore_arquivo(arvore, &tam_arvore);
         int tam_lixo = calcular_lixo(dicionario, tab);
         
-        // --- MONTANDO OS 2 BYTES DO CABEÇALHO ---
-        // Byte 1: 3 bits do Lixo + 5 primeiros bits da Árvore
         unsigned char byte1 = (tam_lixo << 5) | (tam_arvore >> 8);
-        // Byte 2: 8 últimos bits da Árvore
         unsigned char byte2 = (tam_arvore & 0xFF);
         
         fwrite(&byte1, sizeof(unsigned char), 1, out);
         fwrite(&byte2, sizeof(unsigned char), 1, out);
-        
-        // --- SALVANDO A ÁRVORE ---
+
         salvar_arvore_arquivo(arvore, out);
-        
-        // --- SALVANDO OS DADOS ---
+
         int j = 7;
         unsigned char byte = 0;
         unsigned char c;
@@ -263,13 +241,11 @@ void compactar(char** dicionario, unsigned int tab[], arve *arvore, const char *
         
         fclose(in);
         fclose(out);
+        remove(arq_entrada);
         printf("\tArquivo compactado com Cabeçalho gerado com sucesso!\n");
     }
 }
 
-/**
- * @brief Reconstrói a árvore lendo a string em pré-ordem do arquivo compactado.
- */
 arve* reconstruir_arvore(FILE *arq, int *tree_size) {
     if (*tree_size <= 0) return NULL;
     
@@ -298,9 +274,6 @@ arve* reconstruir_arvore(FILE *arq, int *tree_size) {
     return novo;
 }
 
-/**
- * @brief Extrai lendo o cabeçalho, remontando a árvore e traduzindo os bits.
- */
 void descompactar(const char *arq_entrada, const char *arq_saida) {
     FILE *in = fopen(arq_entrada, "rb");
     FILE *out = fopen(arq_saida, "wb");
@@ -309,22 +282,21 @@ void descompactar(const char *arq_entrada, const char *arq_saida) {
         unsigned char cabecalho[2];
         fread(cabecalho, sizeof(unsigned char), 2, in);
         
-        // --- EXTRAINDO INFORMAÇÕES DO CABEÇALHO ---
+        // extrai o cabeçalho
         int trash_size = cabecalho[0] >> 5;
         int tree_size = ((cabecalho[0] & 0x1F) << 8) | cabecalho[1];
         
-        // --- RECONSTRUINDO A ÁRVORE DO ARQUIVO ---
         arve *raiz = reconstruir_arvore(in, &tree_size);
         arve *aux = raiz;
         
-        // --- CALCULANDO QUANTO FALTA LER ---
+        // olha quanto falta pra cabar a leitura
         long pos_atual = ftell(in);
         fseek(in, 0, SEEK_END);
         long tamanho_arquivo = ftell(in);
         fseek(in, pos_atual, SEEK_SET); // Volta para onde estava
         long bytes_restantes = tamanho_arquivo - pos_atual;
         
-        // --- DESCOMPACTANDO DADOS ---
+        //descompactação
         for (long b = 0; b < bytes_restantes; b++) {
             unsigned char byte;
             fread(&byte, sizeof(unsigned char), 1, in);
@@ -347,6 +319,7 @@ void descompactar(const char *arq_entrada, const char *arq_saida) {
         }
         fclose(in);
         fclose(out);
+        remove(arq_entrada);
         printf("\tArquivo descompactado com sucesso a partir do Cabeçalho!\n");
     }
 }
