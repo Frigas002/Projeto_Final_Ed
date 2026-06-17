@@ -339,7 +339,7 @@ int main() {
     scanf("%d",&opcao);
     switch (opcao){
     case 1:{
-        char nome[TAM],nome_compactado[TAM];       
+        char nome[TAM],nome_compactado[TAM+5];       
         printf("\n\tNome do arquivo a ser compactado:");
         scanf("%s",nome);
         sprintf(nome_compactado,"%s.huff",nome);
