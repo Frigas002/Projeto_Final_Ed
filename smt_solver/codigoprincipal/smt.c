@@ -48,7 +48,7 @@ void gerar_arquivo(const char *nome_saida, const char *nome_entrada){
 
 int main(int argc, char *argv[]){
     if(argc < 3){
-        printf("Uso: %s <arquivo_entrada.txt>\n", argv[0]);
+        printf("Uso: %s <arquivo_entrada.cnf> <arquivo_entrada.txt> \n", argv[0]);
         return 1;
     }
 
