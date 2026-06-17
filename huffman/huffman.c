@@ -8,7 +8,7 @@
 typedef struct arve {
     void* caracter; 
     int frequencia;
-    struct arve *esq, *dir, *prox;
+    struct arve *esq, *dir, *prox; // faz o no da arvore ter dupla utilidade (serve pra ser colocado na lista encadeada tbm)
 } arve;
 
 typedef struct Lista {
@@ -85,7 +85,7 @@ void init(unsigned int tab[]) {
 
 arve* remover(Lista *lista) {
     arve *aux = NULL;
-    if(lista->inicio) {
+    if(lista->inicio) { //checa se eh diferente de null
         aux = (arve *)lista->inicio;
         lista->inicio = aux->prox;
         aux->prox = NULL;
@@ -235,7 +235,7 @@ void compactar(char** dicionario, unsigned int tab[], arve *arvore, const char *
                 i++;
             }
         }
-        if(j != 7) {
+        if(j != 7) { //se o j continuar valendo 7 significa que o ultimo byte foi gravado perfeitamente, se n quer dizer que falta um pedaco p escrever do ultimo byte
             fwrite(&byte, sizeof(unsigned char), 1, out);
         }
         
@@ -250,20 +250,20 @@ arve* reconstruir_arvore(FILE *arq, int *tree_size) {
     if (*tree_size <= 0) return NULL;
     
     unsigned char c;
-    fread(&c, sizeof(unsigned char), 1, arq);
-    (*tree_size)--;
+    fread(&c, sizeof(unsigned char), 1, arq); //le o char
+    (*tree_size)--; 
     
     arve *novo = malloc(sizeof(arve));
-    unsigned char *dado = malloc(sizeof(unsigned char));
+    unsigned char *dado = malloc(sizeof(unsigned char)); //malloc pro dado ja que ele ta como void
     
-    if (c == '*') {
+    if (c == '*') { //no interno
         *dado = '*';
         novo->caracter = dado;
         novo->esq = reconstruir_arvore(arq, tree_size);
         novo->dir = reconstruir_arvore(arq, tree_size);
-    } else {
+    } else { //folha
         if (c == '\\') { // Se for escape, lê o próximo como caractere real
-            fread(&c, sizeof(unsigned char), 1, arq);
+            fread(&c, sizeof(unsigned char), 1, arq); 
             (*tree_size)--;
         }
         *dado = c;
@@ -368,7 +368,7 @@ int main() {
         printf("\n\tNome do arquivo a ser descompactado:");
         scanf("%s",nome_compactado);
         int tam_des=strlen(nome_compactado)-5;
-        char nome_descompactado[strlen(nome_compactado)-5];
+        char nome_descompactado[tam_des + 1];
         strncpy(nome_descompactado,nome_compactado,tam_des);
         nome_descompactado[tam_des]='\0';
         descompactar(nome_compactado, nome_descompactado);

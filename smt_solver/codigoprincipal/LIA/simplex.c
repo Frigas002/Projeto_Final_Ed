@@ -126,7 +126,7 @@ int executar (tableau *t){
             double coef = t->matriz[lin_pivo_dual][j];
             if(coef < -1e-5){ // No Dual, o pivô tem que ser negativo
                 double razao = fabs(t->matriz[t->linhas - 1][j] / coef);
-                if(col_pivo_dual == -1 || razao < menor_razao_dual){
+                if(col_pivo_dual == -1 || razao < menor_razao_dual){ //coloca a primeira razao e depois ela é comparada com as outras para ser det qual a menor
                     menor_razao_dual = razao;
                     col_pivo_dual = j;
                 }
@@ -265,7 +265,7 @@ tableau *add_restricao(tableau *atual, int indice_variavel, double limite, int m
     // e uma coluna a mais (para a nova variável de folga)
     tableau *tab = criar_tab(restricoes_antigas + 1, var_originais);
 
-    // 1. Copia as restrições antigas (variáveis originais + folgas antigas)
+    // Copia as restrições antigas (variáveis originais + folgas antigas)
     for (int i = 0; i < restricoes_antigas; i++) {
         for (int j = 0; j < atual->colunas - 1; j++) {
             tab->matriz[i][j] = atual->matriz[i][j];
@@ -273,7 +273,7 @@ tableau *add_restricao(tableau *atual, int indice_variavel, double limite, int m
         tab->matriz[i][tab->colunas - 1] = atual->matriz[i][atual->colunas - 1];
     }
 
-    // 2. Copia a linha objetivo (incluindo as folgas antigas)
+    // Copia a linha objetivo (incluindo as folgas antigas)
     int new_lin_obj = tab->linhas - 1;
     int old_lin_obj = atual->linhas - 1;
     for (int i = 0; i < atual->colunas - 1; i++) {
@@ -281,7 +281,6 @@ tableau *add_restricao(tableau *atual, int indice_variavel, double limite, int m
     }
     tab->matriz[new_lin_obj][tab->colunas - 1] = atual->matriz[old_lin_obj][atual->colunas - 1];
 
-    // 3. Monta a nova restrição (penúltima linha)
     int nova_linha_restricao = tab->linhas - 2;
     if (maior_ou_igual == 1) {
         tab->matriz[nova_linha_restricao][indice_variavel] = -1.0;
@@ -332,7 +331,7 @@ resultado branch_and_bound(tableau *t, int var_originais){
         int indice_variavel;
         double valor_fracionario;
 
-        if(encontrar_fracao(t, var_originais, &indice_variavel, &valor_fracionario) == 0){
+        if(encontrar_fracao(t, var_originais, &indice_variavel, &valor_fracionario) == 0){ 
             r.tem_solucao = 1;
 
             for(int i = 0;  i < var_originais; i++){
@@ -347,11 +346,11 @@ resultado branch_and_bound(tableau *t, int var_originais){
         double piso = floor(valor_fracionario); 
         double teto = ceil(valor_fracionario);
 
-        tableau *esq = add_restricao(t, indice_variavel, piso, 0);
+        tableau *esq = add_restricao(t, indice_variavel, piso, 0); // 0 indica ser <=
         resultado r_esq = branch_and_bound(esq, var_originais);
         free_tab(esq);
 
-        tableau *dir = add_restricao(t, indice_variavel, teto, 1);
+        tableau *dir = add_restricao(t, indice_variavel, teto, 1); //1 indica ser >= (la da funcao add restricao)
         resultado r_dir = branch_and_bound(dir, var_originais);
         free_tab(dir);
 
